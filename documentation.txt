@@ -1,0 +1,93 @@
+INTRODUCTION - 
+
+This project was developed as a part of the Vehicle Re-Identification(Re-ID) Hackathon .The goal was to build a model that can recognize whether two vehicle images, captured from different cameras, belong to the same vehicle . In real-world traffic systems , the same vehicle may appear very different depending on the camera angle , lighting , conditions or occlusion . Because of this the problem cannot be used using simple image classification techniques . 
+
+
+PROPOSED UNDERSTANDING - 
+
+The problem was approached as a similarity learning task instead of as a classification problem .  The objective was to train a model that can compare two images and determine whether they represent the same vehicle or not . Similarity approach is used because new vehicles may appear that the model has never seen before . Therefore learning similarity is more useful than memorizing specific ID's . 
+CHALLENGES - 
+The major challenges in the problem included : 
+1. Vehicle looks different from different camera viewpoints . 
+2. Lighting conditions affect appearance. 
+3. Vehicles may be partially blocked by other objects .
+4. Image quality varies across cameras . 
+
+
+PROPOSED SOLUTION - 
+
+To solve the problem statement SIAMESE-STYLE CONVOLUTIONAL NEURAL NETWORK (CNN) was implemented . In this architecture, two images are passed through the same CNN network with shared weights . SIAMESE-STYLE CONVOLUTIONAL NETWORK is preferred because our task is to identify if these two images are of the same vehicle or not . Normal CNN is used for classification task and will fail if new vehicle appears and there will be too many IDs for the model to memorize . SIAMESE-STYLE CONVOLUTIONAL NEURAL NETWORK learns how to compare images instead of memorizing them . 
+
+
+DATASET EXTRACTION 
+
+The dataset is provided in a compressed(.zip) format . In order to use the images for training, the dataset is first extracted into a working directory . After extraction, the dataset directory contains all the required image files and annotation data , which are used for future processing and model training . 
+
+
+PAIR CREATION AND DATA ORGANIZATION 
+
+To effectively train the model , the dataset was transformed into pairs of images . This step was essential because the objective of the model was not to classify images but to compare two images and determine whether they belong to the same vehicle or not . 
+STEP -1 EXTRACTING VEHICLE ID's
+Each image filename in the dataset contains a vehicle ID . For example in a filename such as "0702_c003_0001.jpg" , the value "0702" represents the vehicle id . This information was extracted using string operations . 
+STEP -2 GROUPING IMAGES
+After extracting the vehicle ids , the images were grouped based on their ids . this resulted in a structure where all the images belonging to the same vehicle were stored together . For example 
+Vehicle 0702 - img1 , img2 , img3 
+Vehicle 0694 - img4 , img5
+This grouping allowed easy access to images belonging to the same vehicles . 
+STEP -3 CREATING POSITIVE (SAME) PAIRS 
+Positive pairs were created by selecting two images from the same group (same vehicle id). These pairs were labelled as 1 . For example (img1 , img2) - label = 1 
+This teaches the model that these two images represent the same vehicle , even if they appear different due to camera angle or lighting . 
+STEP -4 CREATING NEGATIVE (DIFFERENT) PAIRS
+Negative pairs were created by selecting images from different vehicle groups . These pairs were labeled . These pairs were labeled as 0 . For example (img1 , img4) - label = 0 
+This teaches the model to distinguish between different vehicles . 
+STEP -5 BALANCING AND SHUFFLING 
+Approximately equal number of positive and negative pairs were created to ensure balanced training . After generating the pairs, they were shuffled randomly . This prevents the model from learning any unintended patterns due to ordering of data . 
+STEP -6 LIMITING DATASET SIZE
+To manage computational resources and reduce training time , a subset of the total pairs was used during the training . A total of 3000 image pairs were selected from the dataset for training.  This helped in faster experimentation while still allowing the model to learn meaningful patterns . 
+Pair creation was the core idea behind the similarity learning . Instead of training the model to recognize fixed vehicle ids , pairing allowed the model to learn how to compare images and determine if it belonged to same vehicle or not . 
+
+
+DATA PREPERATION USING DATASET AND DATALOADER
+
+All the images were resized to 128 X 128 and after that they were converted into tensor format . This was necessary because neural networks can only process numerical data , not raw images. A custom dataset class was created . The purpose  of the class was to load image pairs (two images and their corresponding label) from the dataset . The dataset class helped in organizing the data and provided one sample at a time when requested. After that a Data Loader was used. The Data Loader took the data from the Dataset and provided it in batches . Instead of feeding one pair at a time , the model was trained on multiple pairs together . Shuffling was applied to ensure that the model does not learn any specific order in the data and generalizes . Dataset and Data Loader made the data pipeline efficient . 
+
+
+MODEL ARCHITECTURE 
+
+A Convolutional Neural Network was implemented to extract feature embeddings from the vehicle images . 
+The model consists of 3 convolutional layers followed by ReLU activation and max-pooling layers . These layers helped in extracting important visual features such as edges , shapes and patterns from the images . After features extraction the output is flattened and passed through a fully connected layer to produce a 128-dimensional embedding vector .An embedding is a numerical representation that captures the important visual characteristics of an image such as shape , colour and structure . These embeddings allowed the model to compare the images mathematically . Similar images will have similar embeddings while different images will have distinct embeddings . This embedding represents the visual identity of the vehicle. This model is used in SIAMESE STYLE setup where two images are passed through the same network to obtain their embeddings . These embeddings are then compared using cosine similarity to determine whether the images belong to the same vehicle .
+
+
+TRAINING SETUP 
+
+The device CPU or GPU is selected . If a GPU is available, it is used to speed up the training process . The model is them moved to the selected device to ensure that the computations are performed efficiently . Cosine Embedding Loss encourages embeddings of the same vehicles to be closer, while embeddings of different vehicles are pushed farther apart. An optimizer Adam is used to update the model parameters during the training .The optimizer adjusts the weights of the model based on the loss helping the model learn better representations. A learning rate of 0.001 is used to control how quickly the model updates its parameters during training . 
+
+
+TRAINING PROCESS
+
+The model is trained using an iterative process over multiple epochs . Total of 5 epochs are used . An epoch represents one complete pass through the entire dataset . For each pair both the images are passed through the model to obtain their embeddings . Before computing the loss the labels are adjusted such that +1 represents similar pairs and -1 represents dissimilar pairs . The loss is then backpropagated through the network to compute gradients . The Adam optimizer updates the models weights based on these gradients to minimize the loss . This process is repeated for 5 epochs allowing the model to gradually learn meaningful feature representations . The total loss is tracked and printed after each epoch to monitor training process .
+
+
+SIMILARITY CHECKING 
+
+After training the model a function is defined to evaluate the similarity between the two images . The model is set to evaluation mode to disable training behaviour and gradient computation is turned off to improve efficiency . Each image is passed through the trained model to obtain its embedding vector . The similarity score range between -1 to 1 . 
+
+
+SELECTING A SAMPLE PAIR 
+
+A random pair of images is selected from the dataset for the testing purpose . Each pair consists of two image filenames and a label indicating whether the image belongs to the same vehicle(1) or not(0) . The actual label is printed to provide a reference for evaluating the models prediction . 
+
+TESTING ON IMAGE PAIRS
+
+Two images are loaded from the dataset and converted into RGB format . The images are then resized and transformed into tensor format using the preprocessing pipeline . These processed images are passed to the similarity checking function . The resulting similarity score indicates how similar the images are . A higher score is preferred . 
+
+
+VISUALIZATION OF RESULTS 
+
+The two images are shown side by side and the similarity score is computed and the actual label is also shown for the comparison . the visual analysis is useful for identifying cases where the model performs well and where is makes mistake . The model was evaluated by randomly sampling 200 image pairs from the dataset. For each pair, similarity was computed and converted into a binary prediction using a threshold. The predictions were compared with actual labels to compute accuracy, precision, F1 score, and confusion matrix. At the end a confusion matrix as a coloured grid is printed . 
+
+
+CONCLUSION
+
+The model was evaluated using randomly selected image pairs from the dataset. Since the evaluation is based on random sampling, the accuracy  varies across different runs. 
+The model demonstrates the ability to learn meaningful visual representations and perform effective vehicle matching despite variations in viewpoint, lighting, and occlusion.
